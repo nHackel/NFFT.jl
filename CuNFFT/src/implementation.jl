@@ -16,6 +16,21 @@ mutable struct CuNFFTPlan{T,D} <: AbstractNFFTPlan{T,D,1}
   B::CuSparseMatrixCSC{Complex{T}} # ::SparseMatrixCSC{T,Int64}
 end
 
+function Base.copy(p::CuNFFTPlan{T, D}) where {T, D}
+  tmpVec = similar(p.tmpVec)
+  tmpVecHat = similar(p.tmpVecHat)
+  deconvolveIdx = copy(p.deconvolveIdx)
+  windowLinInterp = copy(p.windowLinInterp)
+  windowHatInvLUT = copy(p.windowHatInvLUT)
+  B = copy(p.B)
+
+  FP = plan_fft!(tmpVec, p.dims;)
+  BP = plan_bfft!(tmpVec, p.dims;)
+
+  CuNFFTPlan{T,D}(p.N, p.NOut, p.J, p.k, p.Ñ, p.dims, p.params, FP, BP, tmpVec, tmpVecHat, 
+    deconvolveIdx, windowLinInterp, windowHatInvLUT, B)
+end
+
 function AbstractNFFTs.plan_nfft(::Type{<:CuArray}, k::Matrix{T}, N::NTuple{D,Int}, rest...;
   timing::Union{Nothing,TimingStats} = nothing, kargs...) where {T,D}
   t = @elapsed begin
